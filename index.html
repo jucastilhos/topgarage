@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Garage Pro — Leandro Sanches</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --preto: #0F0F0F;
+    --grafite: #1C1C1E;
+    --grafite2: #2C2C2E;
+    --grafite3: #3A3A3C;
+    --cinza: #636366;
+    --cinza2: #8E8E93;
+    --borda: rgba(255,255,255,0.08);
+    --borda2: rgba(255,255,255,0.14);
+    --laranja: #FF6B00;
+    --laranja2: #FF8C38;
+    --laranja-bg: rgba(255,107,0,0.12);
+    --verde: #30D158;
+    --verde-bg: rgba(48,209,88,0.12);
+    --vermelho: #FF453A;
+    --vermelho-bg: rgba(255,69,58,0.12);
+    --azul: #0A84FF;
+    --azul-bg: rgba(10,132,255,0.12);
+    --amarelo: #FFD60A;
+    --amarelo-bg: rgba(255,214,10,0.12);
+    --texto: #F2F2F7;
+    --texto2: #AEAEB2;
+    --texto3: #636366;
+    --surface: #1C1C1E;
+    --surface2: #2C2C2E;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--preto);
+    color: var(--texto);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+    font-size: 15px;
+  }
+
+  /* TOPO */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 52px 20px 16px;
+    background: var(--preto);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 0.5px solid var(--borda);
+  }
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--laranja);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar-user {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--grafite2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--laranja);
+    border: 1.5px solid var(--laranja);
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(15,15,15,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 0.5px solid var(--borda2);
+    display: flex;
+    padding: 8px 0 20px;
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--cinza2);
+    font-size: 10px;
+    font-family: inherit;
+    transition: color 0.15s;
+  }
+  .nav-item.active { color: var(--laranja); }
+  .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* SEÇÕES */
+  .section { display: none; padding: 0 16px; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--borda);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--texto3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+  }
+
+  /* MÉTRICAS */
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--borda);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .metric-label { font-size: 11px; color: var(--texto2); margin-bottom: 6px; font-weight: 500; }
+  .metric-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .metric-sub { font-size: 11px; color: var(--texto3); margin-top: 3px; }
+  .verde { color: var(--verde); }
+  .laranja { color: var(--laranja); }
+  .vermelho { color: var(--vermelho); }
+  .azul { color: var(--azul); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+  }
+  .badge-proprio { background: var(--laranja-bg); color: var(--laranja2); }
+  .badge-consignado { background: var(--amarelo-bg); color: var(--amarelo); }
+  .badge-loja { background: var(--azul-bg); color: var(--azul); }
+  .badge-vendido { background: var(--verde-bg); color: var(--verde); }
+  .badge-prospect { background: var(--grafite2); color: var(--texto2); }
+
+  /* CARRO ITEM */
+  .car-item {
+    border-bottom: 0.5px solid var(--borda);
+    padding: 14px 0;
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .car-item:active { opacity: 0.7; }
+  .car-item:last-child { border-bottom: none; }
+  .car-item-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+  .car-item-name { font-size: 15px; font-weight: 600; }
+  .car-item-year { font-size: 13px; color: var(--texto3); margin-top: 2px; }
+  .car-item-price { font-size: 16px; font-weight: 700; color: var(--texto); }
+  .car-item-bottom { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .car-margin { font-size: 12px; font-weight: 500; }
+
+  /* BARRA DE PROGRESSO */
+  .progress { height: 4px; background: var(--grafite3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--laranja); }
+
+  /* CONTATO */
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 0.5px solid var(--borda);
+    cursor: pointer;
+  }
+  .contact-item:last-child { border-bottom: none; }
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--grafite2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--laranja);
+    flex-shrink: 0;
+    border: 1.5px solid var(--borda2);
+  }
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name { font-size: 15px; font-weight: 600; }
+  .contact-detail { font-size: 12px; color: var(--texto3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* NEGOCIAÇÃO */
+  .deal-item {
+    padding: 14px 0;
+    border-bottom: 0.5px solid var(--borda);
+  }
+  .deal-item:last-child { border-bottom: none; }
+  .deal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .deal-car { font-size: 15px; font-weight: 600; }
+  .deal-contact { font-size: 12px; color: var(--texto3); margin-top: 2px; }
+  .deal-value { font-size: 16px; font-weight: 700; color: var(--verde); }
+  .deal-status { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .status-proposta { background: var(--amarelo-bg); color: var(--amarelo); }
+  .status-negociando { background: var(--verde-bg); color: var(--verde); }
+  .status-financiamento { background: var(--azul-bg); color: var(--azul); }
+  .status-contato { background: var(--grafite2); color: var(--texto2); }
+  .status-fechado { background: var(--verde-bg); color: var(--verde); }
+
+  /* CUSTO ITEM */
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--borda);
+    font-size: 14px;
+  }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-label { color: var(--texto2); }
+  .cost-value { font-weight: 500; }
+
+  /* ALERTA */
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert-text { line-height: 1.4; }
+  .alert-vermelho { background: var(--vermelho-bg); border: 0.5px solid rgba(255,69,58,0.25); }
+  .alert-amarelo { background: var(--amarelo-bg); border: 0.5px solid rgba(255,214,10,0.2); }
+
+  /* BOTÃO */
+  .btn-laranja {
+    width: 100%;
+    padding: 14px;
+    background: var(--laranja);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 12px;
+    transition: opacity 0.15s;
+  }
+  .btn-laranja:active { opacity: 0.85; }
+  .btn-outline {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    color: var(--laranja);
+    font-size: 15px;
+    font-weight: 600;
+    border: 1.5px solid var(--laranja);
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 8px;
+    transition: background 0.15s;
+  }
+  .btn-outline:active { background: var(--laranja-bg); }
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--laranja);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    max-width: 430px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--grafite);
+    border-radius: 24px 24px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-top: 0.5px solid var(--borda2);
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--grafite3);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--texto2); font-weight: 500; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-input {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--surface2);
+    border: 0.5px solid var(--borda2);
+    border-radius: 12px;
+    color: var(--texto);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--laranja); }
+  .form-input::placeholder { color: var(--texto3); }
+  select.form-input option { background: var(--grafite2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* HEADER SEÇÃO */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 8px;
+  }
+  .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+
+  /* SEPARADOR */
+  .sep { height: 0.5px; background: var(--borda); margin: 4px 0 16px; }
+
+  /* FINANCEIRO SUMMARY */
+  .fin-total {
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 0.5px solid var(--borda);
+    margin-bottom: 16px;
+  }
+  .fin-total-label { font-size: 13px; color: var(--texto3); margin-bottom: 6px; }
+  .fin-total-value { font-size: 38px; font-weight: 800; letter-spacing: -1px; color: var(--verde); }
+  .fin-total-mes { font-size: 13px; color: var(--texto3); margin-top: 4px; }
+
+  /* PARADOS */
+  .dias-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dias-ok { background: var(--verde-bg); color: var(--verde); }
+  .dias-atencao { background: var(--amarelo-bg); color: var(--amarelo); }
+  .dias-alerta { background: var(--vermelho-bg); color: var(--vermelho); }
+
+  /* LOGIN */
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+  .login-logo {
+    width: 72px;
+    height: 72px;
+    background: var(--laranja);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin-bottom: 24px;
+  }
+  .login-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .login-sub { font-size: 15px; color: var(--texto3); margin-bottom: 36px; text-align: center; }
+  .login-form { width: 100%; max-width: 340px; }
+  .error-msg { color: var(--vermelho); font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--texto3);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-size: 17px; font-weight: 600; color: var(--texto2); margin-bottom: 6px; }
+  .empty-text { font-size: 14px; line-height: 1.5; }
+
+  .loading { text-align: center; padding: 40px; color: var(--texto3); }
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-logo">🚗</div>
+  <div class="login-title">Garage Pro</div>
+  <div class="login-sub">Gestão de carros do Leandro</div>
+  <div class="login-form">
+    <div class="form-group">
+      <label class="form-label">E-mail</label>
+      <input type="email" id="loginEmail" class="form-input" placeholder="seu@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <input type="password" id="loginPassword" class="form-input" placeholder="••••••••">
+    </div>
+    <button class="btn-laranja" onclick="fazerLogin()">Entrar</button>
+    <div id="loginError" class="error-msg">E-mail ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="appMain" style="display:none">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-icon">🚗</div>
+      <span class="logo-text">Garage Pro</span>
+    </div>
+    <div class="topbar-user" id="userInitials" onclick="logout()" title="Sair">LS</div>
+  </div>
+
+  <!-- PAINEL -->
+  <div class="section active" id="sec-painel">
+    <div style="padding-top:16px">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Carros no estoque</div>
+          <div class="metric-value laranja" id="m-estoque">—</div>
+          <div class="metric-sub" id="m-estoque-sub">carregando...</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Lucro do mês</div>
+          <div class="metric-value verde" id="m-lucro">—</div>
+          <div class="metric-sub" id="m-lucro-sub">vendas este mês</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Capital investido</div>
+          <div class="metric-value laranja" id="m-capital">—</div>
+          <div class="metric-sub">nos carros próprios</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Negociações ativas</div>
+          <div class="metric-value azul" id="m-negocios">—</div>
+          <div class="metric-sub" id="m-negocios-sub">em andamento</div>
+        </div>
+      </div>
+
+      <div id="alertas-container"></div>
+
+      <div class="card">
+        <div class="card-title">⏱ Mais tempo parados</div>
+        <div id="parados-list"><div class="loading">Carregando...</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 Últimas vendas</div>
+        <div id="ultimas-vendas"><div class="loading">Carregando...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTOQUE -->
+  <div class="section" id="sec-estoque">
+    <div class="section-header">
+      <div class="section-title">Estoque</div>
+      <button class="btn-icon" onclick="abrirModalCarro()" aria-label="Adicionar carro">+</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px">
+      <button class="filtro-btn active" data-filtro="todos" onclick="filtrarCarros(this)">Todos</button>
+      <button class="filtro-btn" data-filtro="proprio" onclick="filtrarCarros(this)">Próprios</button>
+      <button class="filtro-btn" data-filtro="consignado" onclick="filtrarCarros(this)">Consignados</button>
+      <button class="filtro-btn" data-filtro="loja" onclick="filtrarCarros(this)">Loja</button>
+    </div>
+    <div id="estoque-list"><div class="loading">Carregando...</div></div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="section" id="sec-financeiro">
+    <div class="section-header">
+      <div class="section-title">Financeiro</div>
+    </div>
+    <div class="card">
+      <div class="fin-total">
+        <div class="fin-total-label">Resultado do mês</div>
+        <div class="fin-total-value" id="fin-total">R$ 0</div>
+        <div class="fin-total-mes" id="fin-mes-label">Junho 2025</div>
+      </div>
+      <div id="fin-breakdown"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Resultado por carro</div>
+      <div id="fin-por-carro"><div class="loading">Carregando...</div></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="section" id="sec-clientes">
+    <div class="section-header">
+      <div class="section-title">Clientes</div>
+      <button class="btn-icon" onclick="abrirModalCliente()" aria-label="Adicionar cliente">+</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <input type="search" class="form-input" placeholder="Buscar por nome ou telefone..." id="busca-clientes" oninput="filtrarClientes()">
+    </div>
+    <div id="clientes-list"><div class="loading">Carregando...</div></div>
+  </div>
+
+  <!-- NEGOCIAÇÕES -->
+  <div class="section" id="sec-negocios">
+    <div class="section-header">
+      <div class="section-title">Negociações</div>
+      <button class="btn-icon" onclick="abrirModalNegociacao()" aria-label="Nova negociação">+</button>
+    </div>
+    <div id="negocios-list"><div class="loading">Carregando...</div></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-painel" onclick="showSection('painel')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </button>
+    <button class="nav-item" id="nav-estoque" onclick="showSection('estoque')">
+      <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="18" r="1"/><circle cx="20" cy="18" r="1"/></svg>
+      Estoque
+    </button>
+    <button class="nav-item" id="nav-financeiro" onclick="showSection('financeiro')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Finanças
+    </button>
+    <button class="nav-item" id="nav-clientes" onclick="showSection('clientes')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clientes
+    </button>
+    <button class="nav-item" id="nav-negocios" onclick="showSection('negocios')">
+      <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      Negócios
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL: NOVO CARRO -->
+<div class="modal-overlay" id="modal-carro">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-carro-title">Novo carro</div>
+    <input type="hidden" id="carro-id">
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="carro-tipo">
+        <option value="proprio">Próprio (comprei para revender)</option>
+        <option value="consignado">Consignado (de outra pessoa)</option>
+        <option value="loja">Da loja (ganho comissão)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Marca</label>
+        <input type="text" class="form-input" id="carro-marca" placeholder="Ex: Chevrolet">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Modelo</label>
+        <input type="text" class="form-input" id="carro-modelo" placeholder="Ex: Onix">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Ano</label>
+        <input type="number" class="form-input" id="carro-ano" placeholder="2020">
+      </div>
+      <div class="form-group">
+        <label class="form-label">KM</label>
+        <input type="number" class="form-input" id="carro-km" placeholder="45000">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cor</label>
+        <input type="text" class="form-input" id="carro-cor" placeholder="Prata">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Placa</label>
+        <input type="text" class="form-input" id="carro-placa" placeholder="ABC-1D23">
+      </div>
+    </div>
+    <div id="campos-proprio">
+      <div class="form-group">
+        <label class="form-label">Preço de compra (R$)</label>
+        <input type="number" class="form-input" id="carro-preco-compra" placeholder="35000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Preço de venda pedido (R$)</label>
+      <input type="number" class="form-input" id="carro-preco-venda" placeholder="47500">
+    </div>
+    <div id="campos-comissao" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Comissão (%)</label>
+          <input type="number" class="form-input" id="carro-comissao-pct" placeholder="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dono / Loja</label>
+          <input type="text" class="form-input" id="carro-dono" placeholder="Nome">
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data de entrada</label>
+      <input type="date" class="form-input" id="carro-data-entrada">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <input type="text" class="form-input" id="carro-obs" placeholder="Ex: revisão agendada, IPVA pago...">
+    </div>
+    <button class="btn-laranja" onclick="salvarCarro()">Salvar carro</button>
+    <button class="btn-outline" onclick="fecharModal('modal-carro')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: CUSTOS DO CARRO -->
+<div class="modal-overlay" id="modal-custos">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Custos do carro</div>
+    <div id="custo-carro-info" style="margin-bottom:16px; font-size:15px; font-weight:600; color:var(--laranja)"></div>
+    <input type="hidden" id="custo-carro-id">
+    <div id="lista-custos"></div>
+    <div class="sep"></div>
+    <div class="modal-title" style="font-size:15px; margin-bottom:12px">Adicionar custo</div>
+    <div class="form-group">
+      <label class="form-label">Tipo de custo</label>
+      <select class="form-input" id="custo-tipo">
+        <option value="mecanica">Mecânica / Revisão</option>
+        <option value="funilaria">Funilaria / Pintura</option>
+        <option value="documentacao">Documentação / Transferência</option>
+        <option value="limpeza">Limpeza / Higienização</option>
+        <option value="ipva">IPVA / Licenciamento</option>
+        <option value="seguro">Seguro</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input type="number" class="form-input" id="custo-valor" placeholder="500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-input" id="custo-data">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-input" id="custo-desc" placeholder="Detalhe o serviço...">
+    </div>
+    <button class="btn-laranja" onclick="salvarCusto()">Adicionar custo</button>
+    <button class="btn-outline" onclick="fecharModal('modal-custos')">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL: NOVO CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo contato</div>
+    <div class="form-group">
+      <label class="form-label">Nome completo</label>
+      <input type="text" class="form-input" id="cliente-nome" placeholder="Nome do cliente">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Telefone / WhatsApp</label>
+      <input type="tel" class="form-input" id="cliente-tel" placeholder="(51) 99999-0000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="cliente-tipo">
+        <option value="comprador">Comprador (quer comprar carro)</option>
+        <option value="vendedor">Vendedor (quer vender carro)</option>
+        <option value="prospect">Prospect (demonstrou interesse)</option>
+        <option value="repasse">Parceiro de repasse</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Interesse / Observações</label>
+      <input type="text" class="form-input" id="cliente-obs" placeholder="Ex: Quer Onix até R$ 50k">
+    </div>
+    <button class="btn-laranja" onclick="salvarCliente()">Salvar contato</button>
+    <button class="btn-outline" onclick="fecharModal('modal-cliente')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: NOVA NEGOCIAÇÃO -->
+<div class="modal-overlay" id="modal-negociacao">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nova negociação</div>
+    <div class="form-group">
+      <label class="form-label">Carro</label>
+      <select class="form-input" id="neg-carro-id"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cliente / Contato</label>
+      <select class="form-input" id="neg-cliente-id"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor oferecido (R$)</label>
+      <input type="number" class="form-input" id="neg-valor" placeholder="45000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-input" id="neg-status">
+        <option value="contato">Primeiro contato</option>
+        <option value="proposta">Proposta enviada</option>
+        <option value="negociando">Negociando</option>
+        <option value="financiamento">Aguardando financiamento</option>
+        <option value="fechado">Fechado / Vendido</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <input type="text" class="form-input" id="neg-obs" placeholder="Detalhe da negociação...">
+    </div>
+    <button class="btn-laranja" onclick="salvarNegociacao()">Salvar negociação</button>
+    <button class="btn-outline" onclick="fecharModal('modal-negociacao')">Cancelar</button>
+  </div>
+</div>
+
+<style>
+  .filtro-btn {
+    white-space: nowrap;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--borda2);
+    background: transparent;
+    color: var(--texto2);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .filtro-btn.active {
+    background: var(--laranja);
+    border-color: var(--laranja);
+    color: #fff;
+  }
+</style>
+
+<script>
+// ==============================
+// CONFIGURAÇÃO SUPABASE
+// ==============================
+const SUPABASE_URL = 'https://zxnodvlngrxzwuehwmfj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JGwRgmbFB1UGQP7ZJJAw5A_NLK6UG3s';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ==============================
+// AUTH
+// ==============================
+async function fazerLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPassword').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById('loginError').style.display = 'block';
+  } else {
+    iniciarApp();
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  document.getElementById('appMain').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function verificarSessao() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    iniciarApp();
+  }
+}
+
+async function iniciarApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appMain').style.display = 'block';
+  const { data: { user } } = await sb.auth.getUser();
+  if (user) {
+    const initials = user.email.substring(0, 2).toUpperCase();
+    document.getElementById('userInitials').textContent = initials;
+  }
+  carregarTudo();
+}
+
+// ==============================
+// DADOS GLOBAIS
+// ==============================
+let carros = [];
+let clientes = [];
+let negociacoes = [];
+let custos = [];
+let filtroAtual = 'todos';
+
+async function carregarTudo() {
+  await Promise.all([carregarCarros(), carregarClientes(), carregarNegociacoes(), carregarCustos()]);
+  renderPainel();
+  renderEstoque();
+  renderClientes();
+  renderNegocios();
+  renderFinanceiro();
+}
+
+async function carregarCarros() {
+  const { data } = await sb.from('carros').select('*').order('data_entrada', { ascending: false });
+  carros = data || [];
+}
+async function carregarClientes() {
+  const { data } = await sb.from('clientes').select('*').order('nome');
+  clientes = data || [];
+}
+async function carregarNegociacoes() {
+  const { data } = await sb.from('negociacoes').select('*').order('criado_em', { ascending: false });
+  negociacoes = data || [];
+}
+async function carregarCustos() {
+  const { data } = await sb.from('custos').select('*');
+  custos = data || [];
+}
+
+// ==============================
+// NAVEGAÇÃO
+// ==============================
+function showSection(nome) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + nome).classList.add('active');
+  document.getElementById('nav-' + nome).classList.add('active');
+}
+
+// ==============================
+// HELPERS
+// ==============================
+function fmtBRL(v) {
+  if (!v && v !== 0) return '—';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR');
+}
+function diasDesde(dataStr) {
+  if (!dataStr) return 0;
+  const diff = Date.now() - new Date(dataStr).getTime();
+  return Math.floor(diff / 86400000);
+}
+function getInitials(nome) {
+  if (!nome) return '?';
+  const p = nome.trim().split(' ');
+  return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase();
+}
+function badgeTipo(tipo) {
+  const map = { proprio: ['badge-proprio','Próprio'], consignado: ['badge-consignado','Consignado'], loja: ['badge-loja','Loja'], vendido: ['badge-vendido','Vendido'] };
+  const [cls, label] = map[tipo] || ['badge-prospect', tipo];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function badgeStatus(s) {
+  const map = { contato:'status-contato Primeiro contato', proposta:'status-proposta Proposta enviada', negociando:'status-negociando Negociando', financiamento:'status-financiamento Aguard. financ.', fechado:'status-fechado Fechado' };
+  const [cls, ...label] = (map[s]||'status-contato '+s).split(' ');
+  return `<span class="deal-status ${cls}">${label.join(' ')}</span>`;
+}
+function custosDoCarroTotal(carroId) {
+  return custos.filter(c => c.carro_id === carroId).reduce((s, c) => s + Number(c.valor || 0), 0);
+}
+
+// ==============================
+// PAINEL
+// ==============================
+function renderPainel() {
+  const ativos = carros.filter(c => c.status !== 'vendido');
+  const proprios = ativos.filter(c => c.tipo === 'proprio');
+  const capital = proprios.reduce((s, c) => s + Number(c.preco_compra || 0) + custosDoCarroTotal(c.id), 0);
+
+  const agora = new Date();
+  const mesAtual = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+  const vendidosMes = negociacoes.filter(n => {
+    if (n.status !== 'fechado') return false;
+    const d = new Date(n.atualizado_em || n.criado_em);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+
+  let lucroMes = 0;
+  vendidosMes.forEach(n => {
+    const carro = carros.find(c => c.id === n.carro_id);
+    if (!carro) return;
+    if (carro.tipo === 'proprio') {
+      const custoTotal = Number(carro.preco_compra || 0) + custosDoCarroTotal(carro.id);
+      lucroMes += (Number(n.valor || 0) - custoTotal);
+    } else {
+      const pct = Number(carro.comissao_pct || 5) / 100;
+      lucroMes += Number(n.valor || 0) * pct;
+    }
+  });
+
+  const negAtivas = negociacoes.filter(n => n.status !== 'fechado').length;
+
+  document.getElementById('m-estoque').textContent = ativos.length;
+  document.getElementById('m-estoque-sub').textContent = `${proprios.length} próprios · ${ativos.filter(c=>c.tipo==='consignado').length} consignados`;
+  document.getElementById('m-lucro').textContent = fmtBRL(lucroMes);
+  document.getElementById('m-lucro-sub').textContent = `${vendidosMes.length} venda(s) este mês`;
+  document.getElementById('m-capital').textContent = fmtBRL(capital);
+  document.getElementById('m-negocios').textContent = negAtivas;
+  document.getElementById('m-negocios-sub').textContent = 'em andamento';
+
+  // Alertas
+  const alertas = [];
+  ativos.forEach(c => {
+    const dias = diasDesde(c.data_entrada);
+    if (dias > 60) alertas.push(`⚠️ <strong>${c.marca} ${c.modelo} ${c.ano}</strong> está há ${dias} dias sem vender.`);
+  });
+  const ac = document.getElementById('alertas-container');
+  ac.innerHTML = alertas.map(a => `<div class="alert alert-vermelho"><div class="alert-text">${a}</div></div>`).join('');
+
+  // Parados
+  const ordenados = [...ativos].sort((a, b) => diasDesde(b.data_entrada) - diasDesde(a.data_entrada)).slice(0, 4);
+  document.getElementById('parados-list').innerHTML = ordenados.length ? ordenados.map(c => {
+    const dias = diasDesde(c.data_entrada);
+    const cls = dias > 60 ? 'dias-alerta' : dias > 30 ? 'dias-atencao' : 'dias-ok';
+    return `<div class="car-item">
+      <div class="car-item-top">
+        <div><div class="car-item-name">${c.marca} ${c.modelo}</div><div class="car-item-year">${c.ano}</div></div>
+        <span class="dias-badge ${cls}">${dias}d</span>
+      </div>
+      <div style="font-size:13px; color:var(--texto2)">${fmtBRL(c.preco_venda)}</div>
+    </div>`;
+  }).join('') : '<div style="color:var(--texto3); padding:16px; text-align:center; font-size:14px">Nenhum carro em estoque</div>';
+
+  // Últimas vendas
+  const recentes = vendidosMes.slice(0, 4);
+  document.getElementById('ultimas-vendas').innerHTML = recentes.length ? recentes.map(n => {
+    const carro = carros.find(c => c.id === n.carro_id);
+    const cli = clientes.find(c => c.id === n.cliente_id);
+    let lucro = 0;
+    if (carro) {
+      if (carro.tipo === 'proprio') {
+        lucro = Number(n.valor||0) - Number(carro.preco_compra||0) - custosDoCarroTotal(carro.id);
+      } else {
+        lucro = Number(n.valor||0) * (Number(carro.comissao_pct||5)/100);
+      }
+    }
+    return `<div class="cost-row"><span class="cost-label">${carro ? carro.marca+' '+carro.modelo : '—'}${cli ? ' · '+cli.nome.split(' ')[0] : ''}</span><span style="color:var(--verde); font-weight:600">+${fmtBRL(lucro)}</span></div>`;
+  }).join('') : '<div style="color:var(--texto3); padding:12px; font-size:14px">Nenhuma venda este mês</div>';
+}
+
+// ==============================
+// ESTOQUE
+// ==============================
+function filtrarCarros(btn) {
+  document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filtroAtual = btn.dataset.filtro;
+  renderEstoque();
+}
+
+function renderEstoque() {
+  const lista = carros.filter(c => c.status !== 'vendido');
+  const filtrado = filtroAtual === 'todos' ? lista : lista.filter(c => c.tipo === filtroAtual);
+  if (!filtrado.length) {
+    document.getElementById('estoque-list').innerHTML = `<div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-title">Sem carros aqui</div><div class="empty-text">Toque no + para adicionar um carro</div></div>`;
+    return;
+  }
+  document.getElementById('estoque-list').innerHTML = filtrado.map(c => {
+    const custosExtra = custosDoCarroTotal(c.id);
+    const custoTotal = Number(c.preco_compra || 0) + custosExtra;
+    const margem = c.tipo === 'proprio' ? Number(c.preco_venda || 0) - custoTotal : null;
+    const pct = c.tipo === 'proprio' && custoTotal > 0 ? Math.round((margem / custoTotal) * 100) : null;
+    const dias = diasDesde(c.data_entrada);
+    return `<div class="card" onclick="abrirCustos('${c.id}')" style="cursor:pointer">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px">
+        ${badgeTipo(c.tipo)}
+        <span style="font-size:12px; color:var(--texto3)">${dias}d em estoque</span>
+      </div>
+      <div class="car-item-name" style="font-size:17px; margin-bottom:3px">${c.marca} ${c.modelo} ${c.ano}</div>
+      <div style="font-size:13px; color:var(--texto3); margin-bottom:10px">${c.km ? c.km.toLocaleString('pt-BR')+'km' : ''} ${c.cor ? '· '+c.cor : ''} ${c.placa ? '· '+c.placa : ''}</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-end">
+        <div>
+          <div style="font-size:12px; color:var(--texto3); margin-bottom:2px">Preço pedido</div>
+          <div style="font-size:18px; font-weight:700">${fmtBRL(c.preco_venda)}</div>
+        </div>
+        ${c.tipo === 'proprio' ? `<div style="text-align:right">
+          <div style="font-size:12px; color:var(--texto3); margin-bottom:2px">Margem</div>
+          <div style="font-size:16px; font-weight:700; color:${margem >= 0 ? 'var(--verde)' : 'var(--vermelho)'}">+${fmtBRL(margem)}</div>
+        </div>` : `<div style="text-align:right">
+          <div style="font-size:12px; color:var(--texto3); margin-bottom:2px">Comissão</div>
+          <div style="font-size:16px; font-weight:700; color:var(--amarelo)">${c.comissao_pct||5}%</div>
+        </div>`}
+      </div>
+      ${c.tipo === 'proprio' && custoTotal > 0 ? `<div class="progress"><div class="progress-fill" style="width:${Math.min(100,pct||0)}%"></div></div>
+      <div style="font-size:11px; color:var(--texto3); margin-top:4px">Custo total: ${fmtBRL(custoTotal)} · Margem: ${pct || 0}%</div>` : ''}
+      ${c.obs ? `<div style="font-size:12px; color:var(--amarelo); margin-top:8px">📝 ${c.obs}</div>` : ''}
+      <div style="font-size:11px; color:var(--laranja); margin-top:8px">Toque para ver / adicionar custos →</div>
+    </div>`;
+  }).join('');
+}
+
+// ==============================
+// CUSTOS
+// ==============================
+async function abrirCustos(carroId) {
+  const carro = carros.find(c => c.id === carroId);
+  document.getElementById('custo-carro-id').value = carroId;
+  document.getElementById('custo-carro-info').textContent = `${carro.marca} ${carro.modelo} ${carro.ano}`;
+  document.getElementById('custo-data').value = new Date().toISOString().slice(0,10);
+  renderListaCustos(carroId);
+  document.getElementById('modal-custos').classList.add('open');
+}
+
+function renderListaCustos(carroId) {
+  const lista = custos.filter(c => c.carro_id === carroId);
+  const total = lista.reduce((s,c) => s + Number(c.valor||0), 0);
+  document.getElementById('lista-custos').innerHTML = lista.length ? `
+    ${lista.map(c => `<div class="cost-row"><span class="cost-label">${c.tipo_custo} — ${c.descricao||''}</span><span class="cost-value">${fmtBRL(c.valor)}</span></div>`).join('')}
+    <div class="cost-row" style="font-size:15px"><span style="font-weight:700">Total de custos</span><span style="font-weight:700; color:var(--vermelho)">${fmtBRL(total)}</span></div>
+  ` : `<div style="color:var(--texto3); font-size:13px; margin-bottom:8px">Nenhum custo cadastrado ainda.</div>`;
+}
+
+async function salvarCusto() {
+  const carroId = document.getElementById('custo-carro-id').value;
+  const { error } = await sb.from('custos').insert({
+    carro_id: carroId,
+    tipo_custo: document.getElementById('custo-tipo').value,
+    valor: parseFloat(document.getElementById('custo-valor').value) || 0,
+    data_custo: document.getElementById('custo-data').value,
+    descricao: document.getElementById('custo-desc').value
+  });
+  if (!error) {
+    document.getElementById('custo-valor').value = '';
+    document.getElementById('custo-desc').value = '';
+    await carregarCustos();
+    renderListaCustos(carroId);
+    renderEstoque();
+    renderFinanceiro();
+  }
+}
+
+// ==============================
+// MODAL CARRO
+// ==============================
+function abrirModalCarro() {
+  document.getElementById('modal-carro-title').textContent = 'Novo carro';
+  document.getElementById('carro-id').value = '';
+  ['carro-marca','carro-modelo','carro-ano','carro-km','carro-cor','carro-placa','carro-preco-compra','carro-preco-venda','carro-comissao-pct','carro-dono','carro-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('carro-tipo').value = 'proprio';
+  document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
+  toggleCamposTipo();
+  document.getElementById('modal-carro').classList.add('open');
+}
+
+document.getElementById('carro-tipo').addEventListener('change', toggleCamposTipo);
+function toggleCamposTipo() {
+  const tipo = document.getElementById('carro-tipo').value;
+  document.getElementById('campos-proprio').style.display = tipo === 'proprio' ? 'block' : 'none';
+  document.getElementById('campos-comissao').style.display = tipo !== 'proprio' ? 'block' : 'none';
+}
+
+async function salvarCarro() {
+  const tipo = document.getElementById('carro-tipo').value;
+  const payload = {
+    tipo,
+    marca: document.getElementById('carro-marca').value,
+    modelo: document.getElementById('carro-modelo').value,
+    ano: parseInt(document.getElementById('carro-ano').value) || null,
+    km: parseInt(document.getElementById('carro-km').value) || null,
+    cor: document.getElementById('carro-cor').value,
+    placa: document.getElementById('carro-placa').value,
+    preco_venda: parseFloat(document.getElementById('carro-preco-venda').value) || null,
+    data_entrada: document.getElementById('carro-data-entrada').value,
+    obs: document.getElementById('carro-obs').value,
+    status: 'ativo'
+  };
+  if (tipo === 'proprio') {
+    payload.preco_compra = parseFloat(document.getElementById('carro-preco-compra').value) || null;
+  } else {
+    payload.comissao_pct = parseFloat(document.getElementById('carro-comissao-pct').value) || 5;
+    payload.dono_nome = document.getElementById('carro-dono').value;
+  }
+  const id = document.getElementById('carro-id').value;
+  if (id) {
+    await sb.from('carros').update(payload).eq('id', id);
+  } else {
+    await sb.from('carros').insert(payload);
+  }
+  fecharModal('modal-carro');
+  await carregarCarros();
+  renderEstoque();
+  renderPainel();
+  renderFinanceiro();
+}
+
+// ==============================
+// CLIENTES
+// ==============================
+function renderClientes(lista) {
+  lista = lista || clientes;
+  if (!lista.length) {
+    document.getElementById('clientes-list').innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nenhum contato</div><div class="empty-text">Toque no + para adicionar</div></div>`;
+    return;
+  }
+  document.getElementById('clientes-list').innerHTML = lista.map(c => {
+    const tagMap = { comprador:'tag-comprador Comprador', vendedor:'badge-consignado Vendedor', prospect:'badge-prospect Prospect', repasse:'badge-loja Repasse' };
+    const [cls, label] = (tagMap[c.tipo]||'badge-prospect '+c.tipo).split(' ');
+    return `<div class="contact-item">
+      <div class="avatar">${getInitials(c.nome)}</div>
+      <div class="contact-info">
+        <div class="contact-name">${c.nome}</div>
+        <div class="contact-detail">${c.telefone || ''} ${c.obs ? '· '+c.obs : ''}</div>
+      </div>
+      <span class="badge ${cls}">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+function filtrarClientes() {
+  const q = document.getElementById('busca-clientes').value.toLowerCase();
+  renderClientes(clientes.filter(c => c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q)));
+}
+
+function abrirModalCliente() {
+  ['cliente-nome','cliente-tel','cliente-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cliente-tipo').value = 'comprador';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+async function salvarCliente() {
+  const { error } = await sb.from('clientes').insert({
+    nome: document.getElementById('cliente-nome').value,
+    telefone: document.getElementById('cliente-tel').value,
+    tipo: document.getElementById('cliente-tipo').value,
+    obs: document.getElementById('cliente-obs').value
+  });
+  if (!error) {
+    fecharModal('modal-cliente');
+    await carregarClientes();
+    renderClientes();
+  }
+}
+
+// ==============================
+// NEGOCIAÇÕES
+// ==============================
+function renderNegocios() {
+  if (!negociacoes.length) {
+    document.getElementById('negocios-list').innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">Nenhuma negociação</div><div class="empty-text">Toque no + para registrar</div></div>`;
+    return;
+  }
+  document.getElementById('negocios-list').innerHTML = negociacoes.map(n => {
+    const carro = carros.find(c => c.id === n.carro_id);
+    const cli = clientes.find(c => c.id === n.cliente_id);
+    let potencial = 0;
+    if (carro) {
+      if (carro.tipo === 'proprio') {
+        const ct = Number(carro.preco_compra||0) + custosDoCarroTotal(carro.id);
+        potencial = Number(n.valor||0) - ct;
+      } else {
+        potencial = Number(n.valor||0) * (Number(carro.comissao_pct||5)/100);
+      }
+    }
+    return `<div class="card">
+      <div class="deal-top">
+        <div>
+          <div class="deal-car">${carro ? carro.marca+' '+carro.modelo+' '+carro.ano : '—'}</div>
+          <div class="deal-contact">${cli ? cli.nome : '—'} ${n.obs ? '· '+n.obs : ''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="deal-value">+${fmtBRL(potencial)}</div>
+          <div style="font-size:12px; color:var(--texto3)">${fmtBRL(n.valor)} oferta</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between">
+        ${badgeStatus(n.status)}
+        ${n.status !== 'fechado' ? `<button style="font-size:12px; padding:4px 10px; border-radius:8px; border:1px solid var(--verde); background:transparent; color:var(--verde); cursor:pointer; font-family:inherit" onclick="marcarFechado('${n.id}')">✓ Marcar vendido</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function marcarFechado(negId) {
+  await sb.from('negociacoes').update({ status: 'fechado', atualizado_em: new Date().toISOString() }).eq('id', negId);
+  const neg = negociacoes.find(n => n.id === negId);
+  if (neg) await sb.from('carros').update({ status: 'vendido' }).eq('id', neg.carro_id);
+  await carregarTudo();
+}
+
+function abrirModalNegociacao() {
+  const carrosAtivos = carros.filter(c => c.status !== 'vendido');
+  document.getElementById('neg-carro-id').innerHTML = carrosAtivos.map(c => `<option value="${c.id}">${c.marca} ${c.modelo} ${c.ano}</option>`).join('');
+  document.getElementById('neg-cliente-id').innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  document.getElementById('neg-valor').value = '';
+  document.getElementById('neg-obs').value = '';
+  document.getElementById('neg-status').value = 'contato';
+  document.getElementById('modal-negociacao').classList.add('open');
+}
+
+async function salvarNegociacao() {
+  const { error } = await sb.from('negociacoes').insert({
+    carro_id: document.getElementById('neg-carro-id').value,
+    cliente_id: document.getElementById('neg-cliente-id').value,
+    valor: parseFloat(document.getElementById('neg-valor').value) || null,
+    status: document.getElementById('neg-status').value,
+    obs: document.getElementById('neg-obs').value,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  });
+  if (!error) {
+    fecharModal('modal-negociacao');
+    await carregarNegociacoes();
+    renderNegocios();
+    renderPainel();
+  }
+}
+
+// ==============================
+// FINANCEIRO
+// ==============================
+function renderFinanceiro() {
+  const agora = new Date();
+  const mesAtual = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('fin-mes-label').textContent = `${meses[mesAtual]} ${anoAtual}`;
+
+  const vendidosMes = negociacoes.filter(n => {
+    if (n.status !== 'fechado') return false;
+    const d = new Date(n.atualizado_em || n.criado_em);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+
+  let lucrosProprios = 0, comissoesRepasse = 0, comissoesLoja = 0;
+  vendidosMes.forEach(n => {
+    const carro = carros.find(c => c.id === n.carro_id);
+    if (!carro) return;
+    if (carro.tipo === 'proprio') {
+      lucrosProprios += Number(n.valor||0) - Number(carro.preco_compra||0) - custosDoCarroTotal(carro.id);
+    } else if (carro.tipo === 'consignado') {
+      comissoesRepasse += Number(n.valor||0) * (Number(carro.comissao_pct||5)/100);
+    } else if (carro.tipo === 'loja') {
+      comissoesLoja += Number(n.valor||0) * (Number(carro.comissao_pct||2)/100);
+    }
+  });
+  const total = lucrosProprios + comissoesRepasse + comissoesLoja;
+  document.getElementById('fin-total').textContent = fmtBRL(total);
+  document.getElementById('fin-breakdown').innerHTML = `
+    <div class="cost-row"><span class="cost-label">Lucro carros próprios</span><span style="color:var(--verde); font-weight:600">+${fmtBRL(lucrosProprios)}</span></div>
+    <div class="cost-row"><span class="cost-label">Comissões de repasse</span><span style="color:var(--verde); font-weight:600">+${fmtBRL(comissoesRepasse)}</span></div>
+    <div class="cost-row"><span class="cost-label">Comissões da loja</span><span style="color:var(--verde); font-weight:600">+${fmtBRL(comissoesLoja)}</span></div>
+  `;
+
+  // Por carro
+  const todosProprios = carros.filter(c => c.tipo === 'proprio');
+  document.getElementById('fin-por-carro').innerHTML = todosProprios.length ? todosProprios.map(c => {
+    const ct = Number(c.preco_compra||0) + custosDoCarroTotal(c.id);
+    const margem = Number(c.preco_venda||0) - ct;
+    const pct = ct > 0 ? Math.round((margem/ct)*100) : 0;
+    return `<div class="cost-row">
+      <span class="cost-label">${c.marca} ${c.modelo} ${c.ano}</span>
+      <span style="color:${c.status==='vendido'?'var(--verde)':margem>=0?'var(--texto)':'var(--vermelho)'}; font-weight:600">${fmtBRL(margem)} (${pct}%)</span>
+    </div>`;
+  }).join('') : '<div style="color:var(--texto3); font-size:14px; padding:12px">Nenhum carro próprio cadastrado</div>';
+}
+
+// ==============================
+// MODAIS
+// ==============================
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ==============================
+// INIT
+// ==============================
+document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
+document.getElementById('custo-data').value = new Date().toISOString().slice(0,10);
+verificarSessao();
+</script>
+</body>
+</html>
