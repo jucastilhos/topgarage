@@ -266,6 +266,7 @@
   .alert-text { line-height: 1.4; }
   .alert-vermelho { background: var(--vermelho-bg); border: 0.5px solid rgba(255,69,58,0.25); }
   .alert-amarelo { background: var(--amarelo-bg); border: 0.5px solid rgba(255,214,10,0.2); }
+  .alert-verde { background: var(--verde-bg); border: 0.5px solid rgba(48,209,88,0.25); }
 
   /* BOTÃO */
   .btn-laranja {
@@ -741,6 +742,10 @@
       <label class="form-label">Interesse / Observações</label>
       <input type="text" class="form-input" id="cliente-obs" placeholder="Ex: Quer Onix até R$ 50k">
     </div>
+    <div class="form-group">
+      <label class="form-label">Data de aniversário</label>
+      <input type="date" class="form-input" id="cliente-aniversario">
+    </div>
     <button class="btn-laranja" onclick="salvarCliente()">Salvar contato</button>
     <button class="btn-outline" onclick="fecharModal('modal-cliente')">Cancelar</button>
   </div>
@@ -981,10 +986,23 @@ function renderPainel() {
   const alertas = [];
   ativos.forEach(c => {
     const dias = diasDesde(c.data_entrada);
-    if (dias > 60) alertas.push(`⚠️ <strong>${c.marca} ${c.modelo} ${c.ano}</strong> está há ${dias} dias sem vender.`);
+    if (dias > 60) alertas.push({ tipo: 'vermelho', msg: `⚠️ <strong>${c.marca} ${c.modelo} ${c.ano}</strong> está há ${dias} dias sem vender.` });
   });
+
+  // Aniversariantes próximos (7 dias)
+  const hoje = new Date();
+  clientes.forEach(c => {
+    if (!c.aniversario) return;
+    const aniv = new Date(c.aniversario);
+    const proxAniv = new Date(hoje.getFullYear(), aniv.getMonth(), aniv.getDate());
+    if (proxAniv < hoje) proxAniv.setFullYear(hoje.getFullYear() + 1);
+    const diasAniv = Math.ceil((proxAniv - hoje) / 86400000);
+    if (diasAniv === 0) alertas.push({ tipo: 'verde', msg: `🎂 Hoje é aniversário de <strong>${c.nome}</strong>! Manda uma mensagem.` });
+    else if (diasAniv <= 7) alertas.push({ tipo: 'amarelo', msg: `🎂 <strong>${c.nome}</strong> faz aniversário em ${diasAniv} dia${diasAniv > 1 ? 's' : ''}.` });
+  });
+
   const ac = document.getElementById('alertas-container');
-  ac.innerHTML = alertas.map(a => `<div class="alert alert-vermelho"><div class="alert-text">${a}</div></div>`).join('');
+  ac.innerHTML = alertas.map(a => `<div class="alert alert-${a.tipo}"><div class="alert-text">${a.msg}</div></div>`).join('');
 
   // Parados
   const ordenados = [...ativos].sort((a, b) => diasDesde(b.data_entrada) - diasDesde(a.data_entrada)).slice(0, 4);
@@ -1194,7 +1212,7 @@ function filtrarClientes() {
 }
 
 function abrirModalCliente() {
-  ['cliente-nome','cliente-tel','cliente-obs'].forEach(id => document.getElementById(id).value = '');
+  ['cliente-nome','cliente-tel','cliente-obs','cliente-aniversario'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cliente-tipo').value = 'comprador';
   document.getElementById('modal-cliente').classList.add('open');
 }
@@ -1204,7 +1222,8 @@ async function salvarCliente() {
     nome: document.getElementById('cliente-nome').value,
     telefone: document.getElementById('cliente-tel').value,
     tipo: document.getElementById('cliente-tipo').value,
-    obs: document.getElementById('cliente-obs').value
+    obs: document.getElementById('cliente-obs').value,
+    aniversario: document.getElementById('cliente-aniversario').value || null
   });
   if (!error) {
     fecharModal('modal-cliente');
