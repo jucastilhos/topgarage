@@ -562,7 +562,7 @@
   <!-- CLIENTES -->
   <div class="section" id="sec-clientes">
     <div class="section-header">
-      <div class="section-title">Clientes</div>
+      <div class="section-title">Contatos</div>
       <button class="btn-icon" onclick="abrirModalCliente()" aria-label="Adicionar cliente">+</button>
     </div>
     <div style="margin-bottom:14px">
@@ -605,9 +605,9 @@
       <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="18" r="1"/><circle cx="20" cy="18" r="1"/></svg>
       Estoque
     </button>
-    <button class="nav-item" id="nav-clientes" onclick="showSection('clientes')">
+    <button class="nav-item" id="nav-contatos" onclick="showSection('clientes')">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Clientes
+      Contatos
     </button>
     <button class="nav-item" id="nav-negocios" onclick="showSection('negocios')">
       <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
@@ -774,22 +774,25 @@
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Novo contato</div>
+    <div class="modal-title" id="modal-cliente-title">Novo contato</div>
+    <input type="hidden" id="cliente-id">
     <div class="form-group">
       <label class="form-label">Nome completo</label>
       <input type="text" class="form-input" id="cliente-nome" placeholder="Nome do cliente">
     </div>
     <div class="form-group">
       <label class="form-label">Telefone / WhatsApp</label>
-      <input type="tel" class="form-input" id="cliente-tel" placeholder="(51) 99999-0000">
+      <input type="tel" class="form-input" id="cliente-tel" placeholder="(51) 99999-0000" oninput="this.value=formatarTelefone(this.value)" maxlength="15">
     </div>
     <div class="form-group">
       <label class="form-label">Tipo</label>
       <select class="form-input" id="cliente-tipo">
-        <option value="comprador">Comprador (quer comprar carro)</option>
-        <option value="vendedor">Vendedor (quer vender carro)</option>
-        <option value="prospect">Prospect (demonstrou interesse)</option>
-        <option value="repasse">Parceiro de repasse</option>
+        <option value="comprador">Comprador</option>
+        <option value="vendedor">Vendedor</option>
+        <option value="lead">Lead</option>
+        <option value="cliente">Cliente</option>
+        <option value="parceiro">Parceiro</option>
+        <option value="outro">Outro</option>
       </select>
     </div>
     <div class="form-group">
@@ -959,6 +962,51 @@ function sanitize(str) {
     .replace(/'/g, '&#039;');
 }
 
+
+// ==============================
+// UTILITÁRIOS DE DATA E HORA
+// ==============================
+// Corrige problema de fuso horário — datas sem hora são interpretadas
+// como UTC e ficam um dia a menos no Brasil (UTC-3)
+function parseDateLocal(dataStr) {
+  if (!dataStr) return null;
+  // Formato YYYY-MM-DD: adiciona horário do meio-dia para evitar virada de dia por fuso
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+    const [y, m, d] = dataStr.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
+  }
+  return new Date(dataStr);
+}
+
+function fmtData(dataStr) {
+  if (!dataStr) return '—';
+  const d = parseDateLocal(dataStr);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function fmtDataCurta(dataStr) {
+  if (!dataStr) return '—';
+  const d = parseDateLocal(dataStr);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function dataHoje() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Máscara de telefone: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+function formatarTelefone(valor) {
+  const nums = valor.replace(/\D/g, '').slice(0, 11);
+  if (nums.length <= 10) {
+    return nums.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+  }
+  return nums.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+}
+
 // ==============================
 // CONFIGURAÇÃO SUPABASE
 // ==============================
@@ -1058,7 +1106,9 @@ function showSection(nome) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('sec-' + nome).classList.add('active');
-  document.getElementById('nav-' + nome).classList.add('active');
+  const navId = nome === 'clientes' ? 'nav-contatos' : 'nav-' + nome;
+  document.getElementById(navId).classList.add('active');
+  window.scrollTo(0, 0);
 }
 
 // ==============================
@@ -1143,7 +1193,7 @@ function renderPainel() {
   const hoje = new Date();
   clientes.forEach(c => {
     if (!c.aniversario) return;
-    const aniv = new Date(c.aniversario);
+    const aniv = parseDateLocal(c.aniversario);
     const proxAniv = new Date(hoje.getFullYear(), aniv.getMonth(), aniv.getDate());
     if (proxAniv < hoje) proxAniv.setFullYear(hoje.getFullYear() + 1);
     const diasAniv = Math.ceil((proxAniv - hoje) / 86400000);
@@ -1296,7 +1346,7 @@ async function abrirCustos(carroId) {
   const carro = carros.find(c => c.id === carroId);
   document.getElementById('custo-carro-id').value = carroId;
   document.getElementById('custo-carro-info').textContent = `${carro.marca} ${carro.modelo} ${carro.ano}`;
-  document.getElementById('custo-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('custo-data').value = dataHoje();
   renderListaCustos(carroId);
   document.getElementById('modal-custos').classList.add('open');
 }
@@ -1350,7 +1400,7 @@ function abrirModalCarro() {
   document.getElementById('crlv-arquivo').value = '';
   crlvPendente = null;
   document.getElementById('carro-tipo').value = 'proprio';
-  document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
+  document.getElementById('carro-data-entrada').value = dataHoje();
   toggleCamposTipo();
   document.getElementById('modal-carro').classList.add('open');
 }
@@ -1361,6 +1411,12 @@ function toggleCamposTipo() {
   document.getElementById('campos-proprio').style.display = tipo === 'proprio' ? 'block' : 'none';
   document.getElementById('campos-comissao').style.display = tipo !== 'proprio' ? 'block' : 'none';
 }
+
+// ==============================
+// LEITURA DE CRLV COM IA
+// ==============================
+// Arquivo CRLV pendente para salvar junto com o carro
+let crlvPendente = null;
 
 async function salvarCarro() {
   const tipo = document.getElementById('carro-tipo').value;
@@ -1413,22 +1469,23 @@ async function salvarCarro() {
     try {
       const caminho = `${user.id}/carro/${carroId}/${Date.now()}_CRLV_${crlvPendente.name}`;
       const { error: uploadErr } = await sb.storage.from('documentos').upload(caminho, crlvPendente);
-      if (!uploadErr) {
+      if (uploadErr) {
+        console.error('Erro upload CRLV:', uploadErr.message);
+      } else {
         const { data: urlData } = await sb.storage.from('documentos').createSignedUrl(caminho, 31536000);
-        await sb.from('documentos').insert({
+        const { error: docErr } = await sb.from('documentos').insert({
           ref_id: carroId,
           ref_tipo: 'carro',
           tipo_doc: 'documento_veiculo',
           descricao: 'CRLV — lido automaticamente pela IA',
           url: urlData?.signedUrl || caminho,
-          caminho_storage: caminho,
           user_id: user.id
         });
+        if (docErr) console.error('Erro salvar doc:', docErr.message);
       }
       crlvPendente = null;
     } catch (e) {
       console.error('Erro ao salvar CRLV:', e);
-      // Não bloqueia o fluxo — carro já foi salvo
     }
   }
 
@@ -1442,9 +1499,6 @@ async function salvarCarro() {
 // ==============================
 // LEITURA DE CRLV COM IA
 // ==============================
-// Arquivo CRLV pendente para salvar junto com o carro
-let crlvPendente = null;
-
 async function lerCRLV(input) {
   const arquivo = input.files[0];
   if (!arquivo) return;
@@ -1522,23 +1576,27 @@ async function lerCRLV(input) {
 function renderClientes(lista) {
   lista = lista || clientes;
   if (!lista.length) {
-    document.getElementById('clientes-list').innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nenhum contato</div><div class="empty-text">Toque no + para adicionar</div></div>`;
+    document.getElementById('clientes-list').innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nenhum contato</div><div class="empty-text">Toque no + para cadastrar</div></div>`;
     return;
   }
   document.getElementById('clientes-list').innerHTML = lista.map(c => {
-    const tagMap = { comprador:'tag-comprador Comprador', vendedor:'badge-consignado Vendedor', prospect:'badge-prospect Prospect', repasse:'badge-loja Repasse' };
+    const tagMap = { comprador:'tag-comprador Comprador', vendedor:'badge-consignado Vendedor', lead:'badge-prospect Lead', cliente:'badge-loja Cliente', parceiro:'bv Parceiro', outro:'badge-prospect Outro' };
     const [cls, label] = (tagMap[c.tipo]||'badge-prospect '+c.tipo).split(' ');
     return `<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div class="avatar">${getInitials(c.nome)}</div>
         <div class="contact-info">
-          <div class="contact-name">${c.nome}</div>
-          <div class="contact-detail">${c.telefone || ''} ${c.obs ? '· '+c.obs : ''}</div>
-          ${c.aniversario ? `<div style="font-size:11px;color:var(--verde);margin-top:2px">🎂 ${new Date(c.aniversario).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>` : ''}
+          <div class="contact-name">${sanitize(c.nome)}</div>
+          <div class="contact-detail">${c.telefone ? formatarTelefone(c.telefone) : ''} ${c.obs ? '· '+sanitize(c.obs) : ''}</div>
+          ${c.aniversario ? `<div style="font-size:11px;color:var(--verde);margin-top:2px">🎂 ${fmtDataCurta(c.aniversario)}</div>` : ''}
         </div>
         <span class="badge ${cls}">${label}</span>
       </div>
-      <button onclick="abrirDocs('${c.id}','cliente','${c.nome}')" style="width:100%;padding:10px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--azul);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">📎 Documentos e fotos</button>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button onclick="editarCliente('${c.id}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--verde);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✏️ Editar</button>
+        <button onclick="excluirCliente('${c.id}','${sanitize(c.nome)}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--vermelho);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🗑️ Excluir</button>
+      </div>
+      <button onclick="abrirDocs('${c.id}','cliente','${sanitize(c.nome)}')" style="width:100%;padding:10px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--azul);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">📎 Documentos e fotos</button>
     </div>`;
   }).join('');
 }
@@ -1549,9 +1607,35 @@ function filtrarClientes() {
 }
 
 function abrirModalCliente() {
+  document.getElementById('cliente-id').value = '';
+  document.getElementById('modal-cliente-title').textContent = 'Novo contato';
   ['cliente-nome','cliente-tel','cliente-obs','cliente-aniversario'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cliente-tipo').value = 'comprador';
   document.getElementById('modal-cliente').classList.add('open');
+}
+
+function editarCliente(clienteId) {
+  const c = clientes.find(x => x.id === clienteId);
+  if (!c) return;
+  document.getElementById('cliente-id').value = c.id;
+  document.getElementById('modal-cliente-title').textContent = 'Editar contato';
+  document.getElementById('cliente-nome').value = c.nome || '';
+  document.getElementById('cliente-tel').value = c.telefone || '';
+  document.getElementById('cliente-tipo').value = c.tipo || 'comprador';
+  document.getElementById('cliente-obs').value = c.obs || '';
+  document.getElementById('cliente-aniversario').value = c.aniversario || '';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+async function excluirCliente(clienteId, nome) {
+  if (!confirm(`Excluir "${nome}"?\n\nEssa ação não pode ser desfeita.`)) return;
+  const { error } = await sb.from('clientes').delete().eq('id', clienteId);
+  if (error) {
+    alert('Erro ao excluir: ' + error.message);
+  } else {
+    await carregarClientes();
+    renderClientes();
+  }
 }
 
 async function salvarCliente() {
@@ -1559,21 +1643,25 @@ async function salvarCliente() {
   if (!nome) { alert('Informe o nome do contato.'); return; }
   const { data: { user } } = await sb.auth.getUser();
   if (!user) { alert('Sessão expirada. Faça login novamente.'); return; }
-  const { error } = await sb.from('clientes').insert({
+  const id = document.getElementById('cliente-id').value;
+  const payload = {
     nome,
     telefone: document.getElementById('cliente-tel').value,
     tipo: document.getElementById('cliente-tipo').value,
     obs: document.getElementById('cliente-obs').value,
     aniversario: document.getElementById('cliente-aniversario').value || null,
     user_id: user.id
-  });
-  if (!error) {
-    fecharModal('modal-cliente');
-    await carregarClientes();
-    renderClientes();
+  };
+  if (id) {
+    const { error } = await sb.from('clientes').update(payload).eq('id', id);
+    if (error) { alert('Erro ao atualizar: ' + error.message); return; }
   } else {
-    alert('Erro ao salvar contato: ' + error.message);
+    const { error } = await sb.from('clientes').insert(payload);
+    if (error) { alert('Erro ao salvar contato: ' + error.message); return; }
   }
+  fecharModal('modal-cliente');
+  await carregarClientes();
+  renderClientes();
 }
 
 // ==============================
@@ -1717,8 +1805,8 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 // ==============================
 // INIT
 // ==============================
-document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
-document.getElementById('custo-data').value = new Date().toISOString().slice(0,10);
+document.getElementById('carro-data-entrada').value = dataHoje();
+document.getElementById('custo-data').value = dataHoje();
 
 // ==============================
 // HISTÓRICO DE TRANSAÇÕES
@@ -1761,7 +1849,7 @@ function renderHistorico(filtro) {
     const carro = carros.find(c => c.id === t.carro_id);
     const vendedor = clientes.find(c => c.id === t.vendedor_id);
     const comprador = clientes.find(c => c.id === t.comprador_id);
-    const data = t.data_transacao ? new Date(t.data_transacao).toLocaleDateString('pt-BR') : '—';
+    const data = t.data_transacao ? fmtData(t.data_transacao) : '—';
     let detalhe = '';
     if (t.tipo === 'compra' && vendedor) detalhe = `Comprado de: <strong>${vendedor.nome}</strong>`;
     if (t.tipo === 'venda' && comprador) detalhe = `Vendido para: <strong>${comprador.nome}</strong>`;
@@ -1799,7 +1887,7 @@ function abrirModalTransacao() {
   const clientesOpts = `<option value="">— Selecione —</option>` + clientes.map(c => `<option value="${sanitize(c.id)}">${sanitize(c.nome)}</option>`).join('');
   document.getElementById('trans-vendedor-id').innerHTML = clientesOpts;
   document.getElementById('trans-comprador-id').innerHTML = clientesOpts;
-  document.getElementById('trans-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('trans-data').value = dataHoje();
   document.getElementById('trans-valor').value = '';
   document.getElementById('trans-obs').value = '';
   document.getElementById('trans-tipo').value = 'compra';
@@ -1865,13 +1953,12 @@ async function salvarDocumento() {
   if (uploadErr) { alert('Erro ao enviar arquivo: ' + uploadErr.message); return; }
   // URL assinada (privada, expira em 1 ano) em vez de URL pública
   const { data: urlData } = await sb.storage.from('documentos').createSignedUrl(caminho, 31536000);
-  await sb.from('documentos').insert({
+  const { error: docErr2 } = await sb.from('documentos').insert({
     ref_id: refId,
     ref_tipo: refTipo,
     tipo_doc: document.getElementById('doc-tipo').value,
     descricao: document.getElementById('doc-desc').value,
     url: urlData?.signedUrl || caminho,
-    caminho_storage: caminho,
     user_id: user.id
   });
   document.getElementById('doc-arquivo').value = '';
