@@ -1298,6 +1298,7 @@ function abrirModalCarro() {
   document.getElementById('crlv-status').style.display = 'none';
   document.getElementById('btn-ler-crlv').textContent = '📄 Selecionar CRLV (PDF ou foto)';
   document.getElementById('crlv-arquivo').value = '';
+  crlvPendente = null;
   document.getElementById('carro-tipo').value = 'proprio';
   document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
   toggleCamposTipo();
@@ -1347,13 +1348,40 @@ async function salvarCarro() {
     payload.dono_nome = document.getElementById('carro-dono').value;
   }
   const id = document.getElementById('carro-id').value;
+  let carroId = id;
   if (id) {
     const { error } = await sb.from('carros').update(payload).eq('id', id);
     if (error) { alert('Erro ao atualizar: ' + error.message); return; }
   } else {
-    const { error } = await sb.from('carros').insert(payload);
+    const { data, error } = await sb.from('carros').insert(payload).select('id').single();
     if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    carroId = data.id;
   }
+
+  // Salvar CRLV automaticamente se tiver arquivo pendente
+  if (crlvPendente && carroId) {
+    try {
+      const caminho = `${user.id}/carro/${carroId}/${Date.now()}_CRLV_${crlvPendente.name}`;
+      const { error: uploadErr } = await sb.storage.from('documentos').upload(caminho, crlvPendente);
+      if (!uploadErr) {
+        const { data: urlData } = await sb.storage.from('documentos').createSignedUrl(caminho, 31536000);
+        await sb.from('documentos').insert({
+          ref_id: carroId,
+          ref_tipo: 'carro',
+          tipo_doc: 'documento_veiculo',
+          descricao: 'CRLV — lido automaticamente pela IA',
+          url: urlData?.signedUrl || caminho,
+          caminho_storage: caminho,
+          user_id: user.id
+        });
+      }
+      crlvPendente = null;
+    } catch (e) {
+      console.error('Erro ao salvar CRLV:', e);
+      // Não bloqueia o fluxo — carro já foi salvo
+    }
+  }
+
   fecharModal('modal-carro');
   await carregarCarros();
   renderEstoque();
@@ -1364,9 +1392,13 @@ async function salvarCarro() {
 // ==============================
 // LEITURA DE CRLV COM IA
 // ==============================
+// Arquivo CRLV pendente para salvar junto com o carro
+let crlvPendente = null;
+
 async function lerCRLV(input) {
   const arquivo = input.files[0];
   if (!arquivo) return;
+  crlvPendente = null; // Limpar anterior
 
   const status = document.getElementById('crlv-status');
   const btn = document.getElementById('btn-ler-crlv');
@@ -1417,7 +1449,10 @@ async function lerCRLV(input) {
     if (dados.chassi) document.getElementById('carro-chassi').value = dados.chassi;
 
     status.style.color = 'var(--verde)';
-    status.textContent = '✅ Dados preenchidos! Confira e complete o restante.';
+    status.textContent = '✅ Dados preenchidos! O CRLV será salvo automaticamente ao salvar o carro.';
+
+    // Guardar arquivo em memória para salvar junto com o carro
+    crlvPendente = arquivo;
 
   } catch (err) {
     status.style.color = 'var(--vermelho)';
