@@ -467,6 +467,9 @@
     </div>
     <button class="btn-laranja" onclick="fazerLogin()">Entrar</button>
     <div id="loginError" class="error-msg">E-mail ou senha incorretos.</div>
+    <div style="font-size:11px;color:var(--texto3);text-align:center;margin-top:16px;line-height:1.5">
+      🔒 Seus dados são armazenados com segurança e utilizados exclusivamente para funcionamento do Top Garage, conforme a <strong style="color:var(--texto2)">Lei Geral de Proteção de Dados (LGPD)</strong>.
+    </div>
   </div>
 </div>
 
@@ -623,6 +626,16 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-carro-title">Novo carro</div>
     <input type="hidden" id="carro-id">
+
+    <!-- BOTÃO LEITURA CRLV -->
+    <div style="background:var(--laranja-bg);border:.5px solid rgba(255,107,0,.3);border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--laranja);margin-bottom:8px">🤖 Preencher automaticamente com CRLV</div>
+      <div style="font-size:12px;color:var(--texto2);margin-bottom:10px">Envie o PDF ou foto do documento e a IA preenche os dados do carro.</div>
+      <input type="file" id="crlv-arquivo" accept="image/*,.pdf" style="display:none" onchange="lerCRLV(this)">
+      <button onclick="document.getElementById('crlv-arquivo').click()" id="btn-ler-crlv" style="width:100%;padding:11px;background:var(--laranja);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">📄 Selecionar CRLV (PDF ou foto)</button>
+      <div id="crlv-status" style="font-size:12px;color:var(--texto2);margin-top:8px;display:none"></div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Tipo</label>
       <select class="form-input" id="carro-tipo">
@@ -634,31 +647,51 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Marca</label>
-        <input type="text" class="form-input" id="carro-marca" placeholder="Ex: Chevrolet">
+        <input type="text" class="form-input" id="carro-marca" placeholder="Ex: Peugeot">
       </div>
       <div class="form-group">
         <label class="form-label">Modelo</label>
-        <input type="text" class="form-input" id="carro-modelo" placeholder="Ex: Onix">
+        <input type="text" class="form-input" id="carro-modelo" placeholder="Ex: 208 Allure">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Ano</label>
-        <input type="number" class="form-input" id="carro-ano" placeholder="2020">
+        <label class="form-label">Ano fabricação</label>
+        <input type="number" class="form-input" id="carro-ano" placeholder="2014">
       </div>
+      <div class="form-group">
+        <label class="form-label">Ano modelo</label>
+        <input type="number" class="form-input" id="carro-ano-modelo" placeholder="2015">
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">KM</label>
         <input type="number" class="form-input" id="carro-km" placeholder="45000">
       </div>
+      <div class="form-group">
+        <label class="form-label">Cor</label>
+        <input type="text" class="form-input" id="carro-cor" placeholder="Branca">
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Cor</label>
-        <input type="text" class="form-input" id="carro-cor" placeholder="Prata">
+        <label class="form-label">Placa</label>
+        <input type="text" class="form-input" id="carro-placa" placeholder="OZY3F25">
       </div>
       <div class="form-group">
-        <label class="form-label">Placa</label>
-        <input type="text" class="form-input" id="carro-placa" placeholder="ABC-1D23">
+        <label class="form-label">Combustível</label>
+        <input type="text" class="form-input" id="carro-combustivel" placeholder="Gasolina">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">RENAVAM</label>
+        <input type="text" class="form-input" id="carro-renavam" placeholder="01025685110">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chassi</label>
+        <input type="text" class="form-input" id="carro-chassi" placeholder="9BWZZZ377VT004251">
       </div>
     </div>
     <div id="campos-proprio">
@@ -912,6 +945,20 @@
 </style>
 
 <script>
+
+// ==============================
+// SEGURANÇA: SANITIZAÇÃO DE DADOS
+// ==============================
+function sanitize(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ==============================
 // CONFIGURAÇÃO SUPABASE
 // ==============================
@@ -1238,10 +1285,14 @@ async function salvarCusto() {
 function abrirModalCarro() {
   document.getElementById('modal-carro-title').textContent = 'Novo carro';
   document.getElementById('carro-id').value = '';
-  ['carro-marca','carro-modelo','carro-ano','carro-km','carro-cor','carro-placa','carro-preco-compra','carro-preco-venda','carro-comissao-pct','carro-dono','carro-obs'].forEach(id => {
+  ['carro-marca','carro-modelo','carro-ano','carro-ano-modelo','carro-km','carro-cor','carro-placa','carro-combustivel','carro-renavam','carro-chassi','carro-preco-compra','carro-preco-venda','carro-comissao-pct','carro-dono','carro-obs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Reset CRLV status
+  document.getElementById('crlv-status').style.display = 'none';
+  document.getElementById('btn-ler-crlv').textContent = '📄 Selecionar CRLV (PDF ou foto)';
+  document.getElementById('crlv-arquivo').value = '';
   document.getElementById('carro-tipo').value = 'proprio';
   document.getElementById('carro-data-entrada').value = new Date().toISOString().slice(0,10);
   toggleCamposTipo();
@@ -1257,14 +1308,24 @@ function toggleCamposTipo() {
 
 async function salvarCarro() {
   const tipo = document.getElementById('carro-tipo').value;
+  const marca = document.getElementById('carro-marca').value.trim();
+  const modelo = document.getElementById('carro-modelo').value.trim();
+  if (!marca || !modelo) {
+    alert('Preencha pelo menos a marca e o modelo do carro.');
+    return;
+  }
   const payload = {
     tipo,
     marca: document.getElementById('carro-marca').value,
     modelo: document.getElementById('carro-modelo').value,
     ano: parseInt(document.getElementById('carro-ano').value) || null,
+    ano_modelo: parseInt(document.getElementById('carro-ano-modelo').value) || null,
     km: parseInt(document.getElementById('carro-km').value) || null,
     cor: document.getElementById('carro-cor').value,
     placa: document.getElementById('carro-placa').value,
+    combustivel: document.getElementById('carro-combustivel').value,
+    renavam: document.getElementById('carro-renavam').value,
+    chassi: document.getElementById('carro-chassi').value,
     preco_venda: parseFloat(document.getElementById('carro-preco-venda').value) || null,
     data_entrada: document.getElementById('carro-data-entrada').value,
     obs: document.getElementById('carro-obs').value,
@@ -1287,6 +1348,91 @@ async function salvarCarro() {
   renderEstoque();
   renderPainel();
   renderFinanceiro();
+}
+
+// ==============================
+// LEITURA DE CRLV COM IA
+// ==============================
+async function lerCRLV(input) {
+  const arquivo = input.files[0];
+  if (!arquivo) return;
+
+  const status = document.getElementById('crlv-status');
+  const btn = document.getElementById('btn-ler-crlv');
+  status.style.display = 'block';
+  status.style.color = 'var(--amarelo)';
+  status.textContent = '⏳ Lendo documento com IA... aguarde alguns segundos.';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+
+  try {
+    // Converter arquivo para base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(arquivo);
+    });
+
+    const isPDF = arquivo.type === 'application/pdf' || arquivo.name.toLowerCase().endsWith('.pdf');
+    const mediaType = isPDF ? 'application/pdf' : arquivo.type || 'image/jpeg';
+
+    // Chamar API da Anthropic
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: isPDF ? 'document' : 'image',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Você é um especialista em documentos de veículos brasileiros. Analise este CRLV (Certificado de Registro e Licenciamento de Veículo) e extraia os dados. Responda APENAS com um JSON válido, sem texto adicional, sem markdown, sem explicações. Formato exato:
+{"marca":"","modelo":"","ano_fabricacao":"","ano_modelo":"","placa":"","cor":"","combustivel":"","renavam":"","chassi":""}
+Extraia exatamente o que aparece no documento. Se algum campo não estiver visível, deixe como string vazia. Para marca e modelo, separe corretamente (ex: marca="PEUGEOT", modelo="208 ALLURE").`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const texto = data.content?.[0]?.text || '';
+
+    // Parsear JSON da resposta
+    const jsonStr = texto.replace(/```json|```/g, '').trim();
+    const dados = JSON.parse(jsonStr);
+
+    // Preencher campos do formulário
+    if (dados.marca) document.getElementById('carro-marca').value = dados.marca;
+    if (dados.modelo) document.getElementById('carro-modelo').value = dados.modelo;
+    if (dados.ano_fabricacao) document.getElementById('carro-ano').value = dados.ano_fabricacao;
+    if (dados.ano_modelo) document.getElementById('carro-ano-modelo').value = dados.ano_modelo;
+    if (dados.placa) document.getElementById('carro-placa').value = dados.placa;
+    if (dados.cor) document.getElementById('carro-cor').value = dados.cor;
+    if (dados.combustivel) document.getElementById('carro-combustivel').value = dados.combustivel;
+    if (dados.renavam) document.getElementById('carro-renavam').value = dados.renavam;
+    if (dados.chassi) document.getElementById('carro-chassi').value = dados.chassi;
+
+    status.style.color = 'var(--verde)';
+    status.textContent = '✅ Dados preenchidos! Confira e complete o restante.';
+
+  } catch (err) {
+    status.style.color = 'var(--vermelho)';
+    status.textContent = '❌ Erro ao ler o documento. Preencha manualmente.';
+    console.error('Erro CRLV:', err);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = '📄 Trocar CRLV';
+    input.value = '';
+  }
 }
 
 // ==============================
@@ -1328,8 +1474,10 @@ function abrirModalCliente() {
 }
 
 async function salvarCliente() {
+  const nome = document.getElementById('cliente-nome').value.trim();
+  if (!nome) { alert('Informe o nome do contato.'); return; }
   const { error } = await sb.from('clientes').insert({
-    nome: document.getElementById('cliente-nome').value,
+    nome,
     telefone: document.getElementById('cliente-tel').value,
     tipo: document.getElementById('cliente-tipo').value,
     obs: document.getElementById('cliente-obs').value,
@@ -1390,8 +1538,8 @@ async function marcarFechado(negId) {
 
 function abrirModalNegociacao() {
   const carrosAtivos = carros.filter(c => c.status !== 'vendido');
-  document.getElementById('neg-carro-id').innerHTML = carrosAtivos.map(c => `<option value="${c.id}">${c.marca} ${c.modelo} ${c.ano}</option>`).join('');
-  document.getElementById('neg-cliente-id').innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  document.getElementById('neg-carro-id').innerHTML = carrosAtivos.map(c => `<option value="${sanitize(c.id)}">${sanitize(c.marca)} ${sanitize(c.modelo)} ${sanitize(String(c.ano||''))}</option>`).join('');
+  document.getElementById('neg-cliente-id').innerHTML = clientes.map(c => `<option value="${sanitize(c.id)}">${sanitize(c.nome)}</option>`).join('');
   document.getElementById('neg-valor').value = '';
   document.getElementById('neg-obs').value = '';
   document.getElementById('neg-status').value = 'contato';
@@ -1556,8 +1704,8 @@ function filtrarHistorico(btn) {
 
 function abrirModalTransacao() {
   const carrosLista = carros;
-  document.getElementById('trans-carro-id').innerHTML = carrosLista.map(c => `<option value="${c.id}">${c.marca} ${c.modelo} ${c.ano}</option>`).join('');
-  const clientesOpts = `<option value="">— Selecione —</option>` + clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  document.getElementById('trans-carro-id').innerHTML = carrosLista.map(c => `<option value="${sanitize(c.id)}">${sanitize(c.marca)} ${sanitize(c.modelo)} ${sanitize(String(c.ano||''))}</option>`).join('');
+  const clientesOpts = `<option value="">— Selecione —</option>` + clientes.map(c => `<option value="${sanitize(c.id)}">${sanitize(c.nome)}</option>`).join('');
   document.getElementById('trans-vendedor-id').innerHTML = clientesOpts;
   document.getElementById('trans-comprador-id').innerHTML = clientesOpts;
   document.getElementById('trans-data').value = new Date().toISOString().slice(0,10);
@@ -1624,13 +1772,15 @@ async function salvarDocumento() {
   const caminho = `${user.id}/${refTipo}/${refId}/${Date.now()}_${arquivo.name}`;
   const { error: uploadErr } = await sb.storage.from('documentos').upload(caminho, arquivo);
   if (uploadErr) { alert('Erro ao enviar arquivo: ' + uploadErr.message); return; }
-  const { data: urlData } = sb.storage.from('documentos').getPublicUrl(caminho);
+  // URL assinada (privada, expira em 1 ano) em vez de URL pública
+  const { data: urlData } = await sb.storage.from('documentos').createSignedUrl(caminho, 31536000);
   await sb.from('documentos').insert({
     ref_id: refId,
     ref_tipo: refTipo,
     tipo_doc: document.getElementById('doc-tipo').value,
     descricao: document.getElementById('doc-desc').value,
-    url: urlData.publicUrl,
+    url: urlData?.signedUrl || caminho,
+    caminho_storage: caminho,
     user_id: user.id
   });
   document.getElementById('doc-arquivo').value = '';
