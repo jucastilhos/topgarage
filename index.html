@@ -1232,11 +1232,61 @@ function renderEstoque() {
       <div style="font-size:11px; color:var(--texto3); margin-top:4px">Custo total: ${fmtBRL(custoTotal)} · Margem: ${pct || 0}%</div>` : ''}
       ${c.obs ? `<div style="font-size:12px; color:var(--amarelo); margin-top:8px">📝 ${c.obs}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="event.stopPropagation();abrirCustos('${c.id}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--laranja);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔧 Custos</button>
-        <button onclick="event.stopPropagation();abrirDocs('${c.id}','carro','${c.marca} ${c.modelo} ${c.ano}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--azul);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📎 Documentos</button>
+        <button onclick="abrirCustos('${c.id}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--laranja);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔧 Custos</button>
+        <button onclick="abrirDocs('${c.id}','carro','${c.marca} ${c.modelo} ${c.ano}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--azul);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📎 Docs</button>
+        <button onclick="editarCarro('${c.id}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--verde);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✏️ Editar</button>
+        <button onclick="excluirCarro('${c.id}','${c.marca} ${c.modelo}')" style="flex:1;padding:9px 6px;background:var(--grafite2);border:0.5px solid var(--borda2);border-radius:10px;color:var(--vermelho);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🗑️</button>
       </div>
     </div>`;
   }).join('');
+}
+
+// ==============================
+// EDITAR E EXCLUIR CARRO
+// ==============================
+function editarCarro(carroId) {
+  const c = carros.find(x => x.id === carroId);
+  if (!c) return;
+
+  // Abrir modal e preencher com dados existentes
+  abrirModalCarro();
+  document.getElementById('modal-carro-title').textContent = 'Editar carro';
+  document.getElementById('carro-id').value = c.id;
+  document.getElementById('carro-tipo').value = c.tipo;
+  document.getElementById('carro-marca').value = c.marca || '';
+  document.getElementById('carro-modelo').value = c.modelo || '';
+  document.getElementById('carro-ano').value = c.ano || '';
+  document.getElementById('carro-ano-modelo').value = c.ano_modelo || '';
+  document.getElementById('carro-km').value = c.km || '';
+  document.getElementById('carro-cor').value = c.cor || '';
+  document.getElementById('carro-placa').value = c.placa || '';
+  document.getElementById('carro-combustivel').value = c.combustivel || '';
+  document.getElementById('carro-renavam').value = c.renavam || '';
+  document.getElementById('carro-chassi').value = c.chassi || '';
+  document.getElementById('carro-preco-venda').value = c.preco_venda || '';
+  document.getElementById('carro-obs').value = c.obs || '';
+  if (c.data_entrada) document.getElementById('carro-data-entrada').value = c.data_entrada;
+  if (c.tipo === 'proprio') {
+    document.getElementById('carro-preco-compra').value = c.preco_compra || '';
+  } else {
+    document.getElementById('carro-comissao-pct').value = c.comissao_pct || 5;
+    document.getElementById('carro-dono').value = c.dono_nome || '';
+  }
+  toggleCamposTipo();
+}
+
+async function excluirCarro(carroId, nome) {
+  if (!confirm(`Excluir "${nome}"?\n\nIsso também remove todos os custos e documentos associados.`)) return;
+  const { error } = await sb.from('carros').delete().eq('id', carroId);
+  if (error) {
+    alert('Erro ao excluir: ' + error.message);
+  } else {
+    await carregarCarros();
+    await carregarCustos();
+    renderEstoque();
+    renderPainel();
+    renderFinanceiro();
+  }
 }
 
 // ==============================
