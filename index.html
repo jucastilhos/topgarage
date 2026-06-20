@@ -963,7 +963,7 @@ function sanitize(str) {
 // CONFIGURAÇÃO SUPABASE
 // ==============================
 const SUPABASE_URL = 'https://zxnodvlngrxzwuehwmfj.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_6WQT7NovglXwA9s7tst9yw_pVT8TdTp';
+const SUPABASE_KEY = 'sb_publishable_JGwRgmbFB1UGQP7ZJJAw5A_NLK6UG3s';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==============================
@@ -1262,12 +1262,15 @@ function renderListaCustos(carroId) {
 
 async function salvarCusto() {
   const carroId = document.getElementById('custo-carro-id').value;
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { alert('Sessão expirada. Faça login novamente.'); return; }
   const { error } = await sb.from('custos').insert({
     carro_id: carroId,
     tipo_custo: document.getElementById('custo-tipo').value,
     valor: parseFloat(document.getElementById('custo-valor').value) || 0,
     data_custo: document.getElementById('custo-data').value,
-    descricao: document.getElementById('custo-desc').value
+    descricao: document.getElementById('custo-desc').value,
+    user_id: user.id
   });
   if (!error) {
     document.getElementById('custo-valor').value = '';
@@ -1276,6 +1279,8 @@ async function salvarCusto() {
     renderListaCustos(carroId);
     renderEstoque();
     renderFinanceiro();
+  } else {
+    alert('Erro ao salvar custo: ' + error.message);
   }
 }
 
@@ -1314,6 +1319,9 @@ async function salvarCarro() {
     alert('Preencha pelo menos a marca e o modelo do carro.');
     return;
   }
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { alert('Sessão expirada. Faça login novamente.'); return; }
+
   const payload = {
     tipo,
     marca: document.getElementById('carro-marca').value,
@@ -1329,7 +1337,8 @@ async function salvarCarro() {
     preco_venda: parseFloat(document.getElementById('carro-preco-venda').value) || null,
     data_entrada: document.getElementById('carro-data-entrada').value,
     obs: document.getElementById('carro-obs').value,
-    status: 'ativo'
+    status: 'ativo',
+    user_id: user.id
   };
   if (tipo === 'proprio') {
     payload.preco_compra = parseFloat(document.getElementById('carro-preco-compra').value) || null;
@@ -1339,9 +1348,11 @@ async function salvarCarro() {
   }
   const id = document.getElementById('carro-id').value;
   if (id) {
-    await sb.from('carros').update(payload).eq('id', id);
+    const { error } = await sb.from('carros').update(payload).eq('id', id);
+    if (error) { alert('Erro ao atualizar: ' + error.message); return; }
   } else {
-    await sb.from('carros').insert(payload);
+    const { error } = await sb.from('carros').insert(payload);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
   }
   fecharModal('modal-carro');
   await carregarCarros();
@@ -1461,17 +1472,22 @@ function abrirModalCliente() {
 async function salvarCliente() {
   const nome = document.getElementById('cliente-nome').value.trim();
   if (!nome) { alert('Informe o nome do contato.'); return; }
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { alert('Sessão expirada. Faça login novamente.'); return; }
   const { error } = await sb.from('clientes').insert({
     nome,
     telefone: document.getElementById('cliente-tel').value,
     tipo: document.getElementById('cliente-tipo').value,
     obs: document.getElementById('cliente-obs').value,
-    aniversario: document.getElementById('cliente-aniversario').value || null
+    aniversario: document.getElementById('cliente-aniversario').value || null,
+    user_id: user.id
   });
   if (!error) {
     fecharModal('modal-cliente');
     await carregarClientes();
     renderClientes();
+  } else {
+    alert('Erro ao salvar contato: ' + error.message);
   }
 }
 
@@ -1532,6 +1548,8 @@ function abrirModalNegociacao() {
 }
 
 async function salvarNegociacao() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { alert('Sessão expirada. Faça login novamente.'); return; }
   const { error } = await sb.from('negociacoes').insert({
     carro_id: document.getElementById('neg-carro-id').value,
     cliente_id: document.getElementById('neg-cliente-id').value,
@@ -1539,13 +1557,16 @@ async function salvarNegociacao() {
     status: document.getElementById('neg-status').value,
     obs: document.getElementById('neg-obs').value,
     criado_em: new Date().toISOString(),
-    atualizado_em: new Date().toISOString()
+    atualizado_em: new Date().toISOString(),
+    user_id: user.id
   });
   if (!error) {
     fecharModal('modal-negociacao');
     await carregarNegociacoes();
     renderNegocios();
     renderPainel();
+  } else {
+    alert('Erro ao salvar negociação: ' + error.message);
   }
 }
 
